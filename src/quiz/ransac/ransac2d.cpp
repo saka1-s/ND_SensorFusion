@@ -2,8 +2,10 @@
 // Quiz on implementing simple RANSAC line fitting
 
 #include "../../render/render.h"
-#include <chrono>
 #include <unordered_set>
+#include "../../processPointClouds.h"
+// using templates for processPointClouds so also include .cpp to help linker
+#include "../../processPointClouds.cpp"
 
 pcl::PointCloud<pcl::PointXYZ>::Ptr CreateData()
 {
@@ -42,6 +44,13 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr CreateData()
 
 }
 
+pcl::PointCloud<pcl::PointXYZ>::Ptr CreateData3D()
+{
+	ProcessPointClouds<pcl::PointXYZ> pointProcessor;
+	return pointProcessor.loadPcd("../../../sensors/data/pcd/simpleHighway.pcd");
+}
+
+
 pcl::visualization::PCLVisualizer::Ptr initScene()
 {
 	pcl::visualization::PCLVisualizer::Ptr viewer(new pcl::visualization::PCLVisualizer ("2D Viewer"));
@@ -54,29 +63,39 @@ pcl::visualization::PCLVisualizer::Ptr initScene()
 
 std::unordered_set<int> Ransac(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int maxIterations, float distanceTol)
 {
-	// Time segmentation process
-  	auto startTime = std::chrono::steady_clock::now();
-
 	std::unordered_set<int> inliersResult;
 	srand(time(NULL));
 	
 	// TODO: Fill in this function
 
 	// For max iterations 
+	for (int i = 0; i < maxIterations; ++i) {	
+		// Randomly sample subset and fit line
+		pcl::PointXYZ point1 = cloud->points[rand()%cloud->points.size()];
+		pcl::PointXYZ point2 = cloud->points[rand()%cloud->points.size()];
+		float A = point1.y - point2.y;
+		float B = point2.x - point1.x;
+		float C = point1.x * point2.y - point2.x * point1.y;
 
-	// Randomly sample subset and fit line
-
-	// Measure distance between every point and fitted line
-	// If distance is smaller than threshold count it as inlier
-
-	// Return indicies of inliers from fitted line with most inliers
-	
-	auto endTime = std::chrono::steady_clock::now();
-	auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
-	std::cout << "Ransac took " << elapsedTime.count() << " milliseconds" << std::endl;
-	
+	   // Measure distance between every point and fitted line
+	    std::unordered_set<int> inliers;
+		float norm = sqrt(pow(A, 2)+pow(B, 2));
+	    for (int p=0; p < cloud->points.size();++p) {
+		   pcl::PointXYZ sampled = cloud->points[p];
+		   float distance = fabs(A*sampled.x+B*sampled.y+C);
+		   distance /= norm;
+			// If distance is smaller than threshold count it as inlier
+		   if (distance < distanceTol) {
+			   inliers.insert(p);
+		   }
+	    }
+		// Return indicies of inliers from fitted line with most inliers
+		if (inliers.size() > inliersResult.size()) {
+			std::cout << "find better result:" << i << "," << inliers.size() << std::endl;
+			inliersResult = inliers;
+		}
+	}
 	return inliersResult;
-
 }
 
 int main ()
@@ -87,9 +106,10 @@ int main ()
 
 	// Create data
 	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = CreateData();
+	
 
 	// TODO: Change the max iteration and distance tolerance arguments for Ransac function
-	std::unordered_set<int> inliers = Ransac(cloud, 0, 0);
+	std::unordered_set<int> inliers = Ransac(cloud, 10, 1.0);
 
 	pcl::PointCloud<pcl::PointXYZ>::Ptr  cloudInliers(new pcl::PointCloud<pcl::PointXYZ>());
 	pcl::PointCloud<pcl::PointXYZ>::Ptr cloudOutliers(new pcl::PointCloud<pcl::PointXYZ>());

@@ -6,7 +6,7 @@
 #include <chrono>
 #include <string>
 #include "kdtree.h"
-
+#define MAX_PCD_SIZE 1024
 // Arguments:
 // window is the region to draw box around
 // increase zoom to see more of the area
@@ -75,15 +75,36 @@ void render2DTree(Node* node, pcl::visualization::PCLVisualizer::Ptr& viewer, Bo
 
 }
 
-std::vector<std::vector<int>> euclideanCluster(const std::vector<std::vector<float>>& points, KdTree* tree, float distanceTol)
+void Proximity(const std::vector<std::vector<float>>& points, int idx,
+			   KdTree& tree,
+               std::vector<int>& cluster,
+			   std::bitset<MAX_PCD_SIZE>& processed,
+			   float distanceTol) {
+	processed[idx] = true;
+	cluster.push_back(idx);
+	std::cout << "*";
+	std::vector<int> candidate = tree.search(points[idx], distanceTol);
+	for (int c = 0; c < candidate.size();++c) {
+		if (processed[candidate[c]])continue;
+		Proximity(points, candidate[c], tree, cluster, processed, distanceTol);
+	}
+}
+std::vector<std::vector<int>> euclideanCluster(std::vector<std::vector<float>>& points,
+												KdTree* tree, float distanceTol)
 {
-
 	// TODO: Fill out this function to return list of indices for each cluster
-
+	std::bitset<MAX_PCD_SIZE> processed;
 	std::vector<std::vector<int>> clusters;
- 
+	for (int p = 0;p < points.size();++p) {
+		if (processed[p])continue;
+		std::cout << "New Cluster" << p << ",";
+		std::vector<float> pt = points[p];
+		std::vector<int> cluster;
+		Proximity(points, p, *tree, cluster, processed, distanceTol);
+		std::cout << std::endl;
+		clusters.push_back(cluster);
+	}
 	return clusters;
-
 }
 
 int main ()
@@ -113,7 +134,7 @@ int main ()
   	render2DTree(tree->root,viewer,window, it);
   
   	std::cout << "Test Search" << std::endl;
-  	std::vector<int> nearby = tree->search({-6,7},3.0);
+  	std::vector<int> nearby = tree->search({7.2,6.1},3.0);
   	for(int index : nearby)
       std::cout << index << ",";
   	std::cout << std::endl;

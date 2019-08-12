@@ -84,11 +84,30 @@ void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer)
   ProcessPointClouds<pcl::PointXYZI>* pointProcessorI = new ProcessPointClouds<pcl::PointXYZI>();
   pcl::PointCloud<pcl::PointXYZI>::Ptr inputCloud = pointProcessorI->loadPcd("../src/sensors/data/pcd/data_1/0000000000.pcd");
   // Experiment with the ? values and find what works best
-  pcl::PointCloud<pcl::PointXYZI>::Ptr filterCloud = pointProcessorI->FilterCloud(inputCloud, 0.25 ,
-                                                                                  Eigen::Vector4f (-10., -6., -3., 1),
-                                                                                  Eigen::Vector4f ( 10.,  6.,  3., 1));
-  renderPointCloud(viewer,filterCloud,"filterCloud");
+  pcl::PointCloud<pcl::PointXYZI>::Ptr filterCloud = pointProcessorI->FilterCloud(inputCloud, 0.125 ,
+                                                                                  Eigen::Vector4f (-20., -6., -3., 1),
+                                                                                  Eigen::Vector4f ( 50.,  6.,  3., 1));
+  //renderPointCloud(viewer,filterCloud,"filterCloud");
   //renderPointCloud(viewer,inputCloud,"inputCloud");
+
+    std::pair<pcl::PointCloud<pcl::PointXYZI>::Ptr, pcl::PointCloud<pcl::PointXYZI>::Ptr> segmentCloud = pointProcessorI->SegmentPlane(filterCloud, 300, 0.3);
+    //renderPointCloud(viewer,segmentCloud.second,"obstCloud",Color(1,0,0));
+    renderPointCloud(viewer,segmentCloud.first,"planeCloud",Color(0,1,0));
+
+    std::vector<pcl::PointCloud<pcl::PointXYZI>::Ptr> cloudClusters = pointProcessorI->Clustering(segmentCloud.second, 0.5, 50, 1000);
+    int clusterId = 0;
+    std::vector<Color> colors = {Color(1,0,0), Color(0,1,0), Color(0,0,1)};
+
+    for(pcl::PointCloud<pcl::PointXYZI>::Ptr cluster : cloudClusters)
+    {
+        std::cout << "cluster size ";
+        pointProcessorI->numPoints(cluster);
+        renderPointCloud(viewer,cluster,"obstCloud"+std::to_string(clusterId),colors[clusterId]);
+
+        Box box = pointProcessorI->BoundingBox(cluster);
+        renderBox(viewer, box, clusterId);
+        ++clusterId;
+    }
 }
 
 //setAngle: SWITCH CAMERA ANGLE {XY, TopDown, Side, FPS}
@@ -122,7 +141,7 @@ int main (int argc, char** argv)
     pcl::visualization::PCLVisualizer::Ptr viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
     CameraAngle setAngle = XY;
     initCamera(setAngle, viewer);
-    // simpleHighway(viewer);
+    //simpleHighway(viewer);
     cityBlock(viewer);
 
     while (!viewer->wasStopped ())

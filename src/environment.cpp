@@ -115,7 +115,7 @@ void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer,
     pcl::PointCloud<pcl::PointXYZI>::Ptr filterCloud = pointProcessorI->FilterCloud(inputCloud, 0.25 ,
                                                                                   Eigen::Vector4f (-10., -6., -3., 1),
                                                                                   Eigen::Vector4f ( 10.,  6.,  3., 1));
-    std::pair<pcl::PointCloud<pcl::PointXYZI>::Ptr, pcl::PointCloud<pcl::PointXYZI>::Ptr> segmentCloud = pointProcessorI->SegmentPlane(filterCloud, 300, 0.3);
+    std::pair<pcl::PointCloud<pcl::PointXYZI>::Ptr, pcl::PointCloud<pcl::PointXYZI>::Ptr> segmentCloud = pointProcessorI->SegmentPlane(filterCloud, 300, 0.1);
     //renderPointCloud(viewer,segmentCloud.second,"obstCloud",Color(1,0,0));
     renderPointCloud(viewer,segmentCloud.first,"planeCloud",Color(0,1,0));
 
@@ -163,7 +163,7 @@ int main (int argc, char** argv)
     std::cout << "starting enviroment" << std::endl;
 
     pcl::visualization::PCLVisualizer::Ptr viewer (new pcl::visualization::PCLVisualizer ("3D Viewer"));
-    CameraAngle setAngle = XY;
+    CameraAngle setAngle = FPS;
     initCamera(setAngle, viewer);
     // simpleHighway(viewer);
     // cityBlock(viewer);
